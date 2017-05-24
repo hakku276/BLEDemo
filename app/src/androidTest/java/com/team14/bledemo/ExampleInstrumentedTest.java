@@ -1,4 +1,4 @@
-package com.team14.blemodule;
+package com.team14.bledemo;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

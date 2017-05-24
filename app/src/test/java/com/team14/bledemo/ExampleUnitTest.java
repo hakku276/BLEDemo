@@ -1,4 +1,4 @@
-package com.team14.blemodule;
+package com.team14.bledemo;
 
 import org.junit.Test;
 
