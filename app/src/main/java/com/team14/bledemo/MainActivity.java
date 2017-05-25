@@ -12,8 +12,6 @@ import com.team14.blemodule.WeatherService;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getName();
-    private static final String IPVS_WEATHER = "IPVSWeather";
-
 
     private BluetoothAdapter adapter;
     private WeatherService weatherService;

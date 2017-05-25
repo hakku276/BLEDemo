@@ -29,7 +29,23 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         void onTemperatureChanged(float value);
         void onHumidityChanged(int value);
         void onServiceStarted();
-        void onServiceFailedStart();
+        void onServiceFailedStart(FailureReason reason);
+    }
+
+    public enum FailureReason{
+        DEVICE_NOT_FOUND,
+        CONNECTION_FAILED,
+        UNKNOWN
+    }
+
+    private enum InternalFailureReason{
+        SCANNER_FAILED,
+        CHARACTERISTIC_NOT_FOUND,
+        CHARACTERISTIC_NOTI_FAILED,
+        DESCRIPTOR_WRITE_FAILED,
+        DESCRIPTOR_NOT_FOUND,
+        SERVICE_NOT_FOUND,
+        DISCOVER_SERVICES_FAILED
     }
 
     private BLEScanner scanner;
@@ -56,6 +72,11 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         }
     }
 
+    public void updateValues(){
+        //TODO update the values in the device
+
+    }
+
     @Override
     public void onDeviceFound(BluetoothDevice device) {
         Log.d(TAG, "onDeviceFound: Found Target Device");
@@ -76,14 +97,14 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         if (!mRunning){
             Log.d(TAG, "onScanCompleted: Scan completed but the system is not running");
             if (mCallback!= null){
-                mCallback.onServiceFailedStart();
+                mCallback.onServiceFailedStart(FailureReason.DEVICE_NOT_FOUND);
             }
         }
     }
 
     @Override
     public void onScanFailed(BLEScanner.ScannerFailureReason reason) {
-        serviceErrorHandler(null);
+        serviceErrorHandler(null,InternalFailureReason.SCANNER_FAILED);
     }
 
     //MARK: - Bluetooth Gatt Callback methods
@@ -93,10 +114,9 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         if (status == BluetoothGatt.GATT_FAILURE){
             Log.e(TAG, "Failed GATT Connection");
             if (mCallback != null){
-                mCallback.onServiceFailedStart();
+                mCallback.onServiceFailedStart(FailureReason.CONNECTION_FAILED);
             }
-        }
-        if (status == BluetoothGatt.GATT_SUCCESS) {
+        } else if (status == BluetoothGatt.GATT_SUCCESS) {
             switch (newState) {
                 case BluetoothGatt.STATE_CONNECTING:
                     Log.d(TAG, "onConnectionStateChange: Connecting to device");
@@ -115,9 +135,9 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
                     this.mDeviceConnected = true;
                     //read the service list
                     if(!gatt.discoverServices()){
-                        Log.e(TAG, "onConnectionStateChange: COuld not start discovery service");
+                        Log.e(TAG, "onConnectionStateChange: Could not start discovery service");
                         if(mCallback!= null){
-                            mCallback.onServiceFailedStart();
+                            mCallback.onServiceFailedStart(FailureReason.UNKNOWN);
                         }
                     }
                     break;
@@ -137,12 +157,12 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
                 BluetoothGattCharacteristic humidityCharacteristic = weatherService.getCharacteristic(UUID.fromString(IPVS_WEATHER_HUMID_UUID));
                 if (temperatureCharacteristic == null || humidityCharacteristic == null){
                     Log.e(TAG, "onServicesDiscovered: Complete Set of Characteristics not found");
-                    serviceErrorHandler(gatt);
+                    serviceErrorHandler(gatt, InternalFailureReason.CHARACTERISTIC_NOT_FOUND);
                 } else {
                     //apply for notification request on temperature changes
                     if(!gatt.setCharacteristicNotification(temperatureCharacteristic, true) || gatt.setCharacteristicNotification(humidityCharacteristic, true)){
                         Log.e(TAG, "onServicesDiscovered: Could not Register for Temperature or Humidity notification");
-                        serviceErrorHandler(gatt);
+                        serviceErrorHandler(gatt, InternalFailureReason.CHARACTERISTIC_NOTI_FAILED);
                     } else {
                         BluetoothGattDescriptor tempDescriptor = temperatureCharacteristic.getDescriptors().get(0);
                         BluetoothGattDescriptor humidDescriptor = humidityCharacteristic.getDescriptors().get(0);
@@ -158,21 +178,21 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
                                 }
                             } else {
                                 Log.e(TAG, "onServicesDiscovered: Could not write notification request to descriptor");
-                                serviceErrorHandler(gatt);
+                                serviceErrorHandler(gatt, InternalFailureReason.DESCRIPTOR_WRITE_FAILED);
                             }
                         } else {
                             Log.e(TAG, "onServicesDiscovered: Did not find descriptor for Temperature");
-                            serviceErrorHandler(gatt);
+                            serviceErrorHandler(gatt, InternalFailureReason.DESCRIPTOR_NOT_FOUND);
                         }
                     }
                 }
             } else {
                 Log.e(TAG, "onServicesDiscovered: Service not found");
-                serviceErrorHandler(gatt);
+                serviceErrorHandler(gatt,InternalFailureReason.SERVICE_NOT_FOUND);
             }
         } else {
             Log.e(TAG, "onServicesDiscovered: Failed to discover services");
-            serviceErrorHandler(gatt);
+            serviceErrorHandler(gatt, InternalFailureReason.DISCOVER_SERVICES_FAILED);
         }
 
     }
@@ -199,9 +219,9 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
      * Handles error related to Weather Service
      * @param gatt the gatt connection, null if not connected
      */
-    private void serviceErrorHandler(BluetoothGatt gatt){
+    private void serviceErrorHandler(BluetoothGatt gatt, InternalFailureReason reason){
         if (mCallback!= null){
-            mCallback.onServiceFailedStart();
+            mCallback.onServiceFailedStart(FailureReason.UNKNOWN);
         }
 
         if(mDeviceConnected && gatt != null){
