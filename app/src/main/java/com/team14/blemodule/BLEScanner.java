@@ -20,27 +20,76 @@ import java.util.UUID;
  * Created by aanal on 5/24/17.
  */
 
-public class BLEScanner extends ScanCallback{
+public class BLEScanner extends ScanCallback {
 
-    interface BLEScannerCallback{
+    /**
+     * The BLE Scanner Callback which can be used to get feedback from the scanner
+     */
+    interface BLEScannerCallback {
+        /**
+         * Called Whenever a device with the scan criteria has been found
+         *
+         * @param device the BluetoothDevice representation of the device found
+         */
         void onDeviceFound(BluetoothDevice device);
+
+        /**
+         * Called when the scan fails
+         *
+         * @param reason The reason of the failure
+         */
+        void onScanFailed(ScannerFailureReason reason);
+
+        /**
+         * Called when the scan completes after the defined amount of time, regardless of device found or not
+         */
         void onScanCompleted();
     }
 
+    /**
+     * The reasons for Scanner Failure
+     */
+    enum ScannerFailureReason {
+        SCAN_ALREADY_STARTED,
+        APPLICATION_REGISTRATION_FAILED,
+        SCAN_NOT_SUPPORTED,
+        INTERNAL_ERROR
+    }
+
     private static final String TAG = BLEScanner.class.getName();
-    private static final long SCAN_TIME = 60000;
+    /**
+     * The BLE Scan Time in Millis
+     */
+    private static final long SCAN_TIME = 20000;
+
+    /**
+     * The handler used to post delayed runnable tasks, usually to stop the scanner after a certain time
+     */
     private Handler mHandler;
+    /**
+     * defines whether the device is currently BLE Scanning or not
+     */
     private boolean mScanning;
+    /**
+     * The bluetooth adapter, to start start the LE Scans
+     */
     private BluetoothAdapter adapter;
+
+    /**
+     * Callback that is waiting for scanner results
+     */
     private BLEScannerCallback mCallback;
 
-    public BLEScanner(BluetoothAdapter adapter, BLEScannerCallback callback){
+    BLEScanner(BluetoothAdapter adapter, BLEScannerCallback callback) {
         this.adapter = adapter;
         mHandler = new Handler();
         mScanning = false;
         this.mCallback = callback;
     }
 
+    /**
+     * Starts a scan for any possible device
+     */
     public void startScan() {
         if (!mScanning) {
             Log.d(TAG, "startScan: Scan started for : " + SCAN_TIME);
@@ -58,8 +107,13 @@ public class BLEScanner extends ScanCallback{
         }
     }
 
-    public void startScan(String deviceName){
-        if(!mScanning){
+    /**
+     * Starts a scan for the specified device name
+     *
+     * @param deviceName the name of the device to filter
+     */
+    void startScan(String deviceName) {
+        if (!mScanning) {
             mScanning = true;
             Log.d(TAG, "startScan: Searching for Device: " + deviceName);
 
@@ -81,17 +135,23 @@ public class BLEScanner extends ScanCallback{
                 }
             }, SCAN_TIME);
 
-            adapter.getBluetoothLeScanner().startScan(filters,scanSettingBuilder.build(),this);
+            adapter.getBluetoothLeScanner().startScan(filters, scanSettingBuilder.build(), this);
         } else {
             Log.d(TAG, "startScan: Scanner already running");
         }
     }
 
-    public void stopScan(){
-        if(mScanning) {
+    /**
+     * Stops the scan
+     */
+    void stopScan() {
+        if (mScanning) {
             Log.d(TAG, "stopScan: Stopping LE Scanner");
             adapter.getBluetoothLeScanner().stopScan(this);
             mScanning = false;
+            if (mCallback != null) {
+                mCallback.onScanCompleted();
+            }
         } else {
             Log.d(TAG, "stopScan: Scanner not running");
         }
@@ -100,18 +160,41 @@ public class BLEScanner extends ScanCallback{
     @Override
     public void onScanResult(int callbackType, ScanResult result) {
         Log.d(TAG, "onScanResult: Device Found: " + result.toString());
-        if (mCallback != null){
+        if (mCallback != null) {
             mCallback.onDeviceFound(result.getDevice());
         }
     }
 
     @Override
     public void onBatchScanResults(List<ScanResult> results) {
-
+        //nothing to do here
     }
 
     @Override
     public void onScanFailed(int errorCode) {
         Log.e(TAG, "onScanFailed: The Scan Failed with error code: " + errorCode);
+        ScannerFailureReason reason;
+        switch (errorCode) {
+            case SCAN_FAILED_ALREADY_STARTED:
+                reason = ScannerFailureReason.SCAN_ALREADY_STARTED;
+                break;
+            case SCAN_FAILED_APPLICATION_REGISTRATION_FAILED:
+                reason = ScannerFailureReason.APPLICATION_REGISTRATION_FAILED;
+                break;
+            case SCAN_FAILED_FEATURE_UNSUPPORTED:
+                reason = ScannerFailureReason.SCAN_NOT_SUPPORTED;
+                break;
+            case SCAN_FAILED_INTERNAL_ERROR:
+                reason = ScannerFailureReason.INTERNAL_ERROR;
+                break;
+            default:
+                reason = ScannerFailureReason.INTERNAL_ERROR;
+        }
+        if (reason == ScannerFailureReason.SCAN_ALREADY_STARTED) {
+            // if scan already started, it is not a failure
+            mScanning = true;
+        } else if (mCallback != null) {
+            mCallback.onScanFailed(reason);
+        }
     }
 }
