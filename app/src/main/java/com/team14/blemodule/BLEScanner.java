@@ -120,7 +120,7 @@ public class BLEScanner extends ScanCallback {
             //ScanFilter
             List<ScanFilter> filters = new ArrayList<>(1);
             ScanFilter.Builder builder = new ScanFilter.Builder();
-            builder.setDeviceName("IPVSWeather");
+            builder.setDeviceName(deviceName);
             filters.add(builder.build());
 
             //ScanSetting

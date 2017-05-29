@@ -8,16 +8,20 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.team14.blemodule.BLEScanner;
+import com.team14.blemodule.FanController;
 import com.team14.blemodule.WeatherService;
 
-public class MainActivity extends AppCompatActivity implements WeatherService.WeatherServiceCallback{
+public class MainActivity extends AppCompatActivity implements FanController.FanControllerCallback{
 
     private static final String TAG = MainActivity.class.getName();
 
     private BluetoothAdapter adapter;
-    private WeatherService weatherService;
+    //private WeatherService weatherService;
+    private FanController fanController;
 
     private Handler mHandler;
+
+    private int speed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,10 +42,12 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
             adapter.enable();
         }
 
-        weatherService = new WeatherService(this, adapter, this);
+        //weatherService = new WeatherService(this, adapter, this);
 
+        fanController = new FanController(this, adapter, this);
+        fanController.startService();
         //start the weather service
-        weatherService.startService();
+        //weatherService.startService();
     }
 
     @Override
@@ -52,47 +58,93 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
     //MARK: - Weather Service
 
-    @Override
-    public void onTemperatureChanged(float value) {
+//    @Override
+//    public void onTemperatureChanged(float value) {
+//
+//    }
+//
+//    @Override
+//    public void onHumidityChanged(int value) {
+//
+//    }
+//
+//    @Override
+//    public void onFanControllerServiceStarted() {
+//        Log.d(TAG, "onWeatherServiceStarted: Service Has Started");
+//        weatherService.registerForTemperature();
+//    }
+//
+//    @Override
+//    public void onTemperatureServiceRegistered() {
+//        Log.d(TAG, "onTemperatureServiceRegistered: Registered for temperature");
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//                if(!weatherService.registerForHumidity()){
+//                    Log.d(TAG, "run: Not writing Descriptor");
+//                }
+//            }
+//        });
+//    }
+//
+//    @Override
+//    public void onHumidityServiceRegistered() {
+//        Log.d(TAG, "onHumidityServiceRegistered: Registered for humidity");
+//    }
+//
+//    @Override
+//    public void onServiceFailedStart(WeatherService.FailureReason reason) {
+//
+//    }
 
+
+    @Override
+    public void onFanControllerServiceStarted() {
+        Log.d(TAG, "onFanControllerServiceStarted: Connected to FAN SERVICE");
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                speed = 65000;
+                fanController.setFanSpeed(36000);
+            }
+        });
     }
 
     @Override
-    public void onHumidityChanged(int value) {
-
-    }
-
-    @Override
-    public void onServiceStarted() {
-        Log.d(TAG, "onServiceStarted: Service Has Started");
-        weatherService.registerForTemperature();
-    }
-
-    @Override
-    public void onTemperatureServiceRegistered() {
-        Log.d(TAG, "onTemperatureServiceRegistered: Registered for temperature");
+    public void onValueWritten() {
+        Log.d(TAG, "onValueWritten: Value Written");
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(2000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if(!weatherService.registerForHumidity()){
-                    Log.d(TAG, "run: Not writing Descriptor");
+                if (speed != 65000) {
+                    speed = 65000;
+                    fanController.setFanSpeed(36000);
+                } else {
+                    Log.d(TAG, "run: FINISHED");
+                    fanController.readFanSpeed();
                 }
             }
         });
     }
 
     @Override
-    public void onHumidityServiceRegistered() {
-        Log.d(TAG, "onHumidityServiceRegistered: Registered for humidity");
+    public void onFanControllerServiceFailedStart(FanController.FailureReason reason) {
+
     }
 
     @Override
-    public void onServiceFailedStart(WeatherService.FailureReason reason) {
-
+    public void onFanSpeedRead(int speed) {
+        Log.d(TAG, "onFanSpeedRead: Fan Speed: " + speed);
+        fanController.stopService();
     }
 }
