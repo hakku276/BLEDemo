@@ -50,16 +50,19 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         SCANNER_FAILED,
         CHARACTERISTIC_NOT_FOUND,
         CHARACTERISTIC_NOTI_FAILED,
+        CHARACTERISTIC_READ_FAILED,
         DESCRIPTOR_WRITE_FAILED,
         DESCRIPTOR_NOT_FOUND,
         SERVICE_NOT_FOUND,
-        DISCOVER_SERVICES_FAILED
+        DISCOVER_SERVICES_FAILED,
+        GATT_BUSY
     }
 
     private BLEScanner scanner;
     private WeatherServiceCallback mCallback;
     private boolean mRunning;
     private boolean mDeviceConnected;
+    private boolean mBusy;
     private Context mContext;
     private BluetoothGatt mGatt;
 
@@ -69,10 +72,13 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         mRunning = false;
         this.mContext = context;
         this.mDeviceConnected = false;
+        this.mRunning = false;
+        this.mBusy = false;
     }
 
     public void startService() {
         if (!mRunning) {
+            mRunning = true;
             Log.d(TAG, "startService: Booting up service");
             Log.d(TAG, "startService: Initiating Scan for target named: " + TARGET_DEVICE_NAME);
             scanner.startScan(TARGET_DEVICE_NAME);
@@ -81,7 +87,19 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         }
     }
 
-    public void registerForTemperature(){
+    public void stopService() {
+        mRunning = false;
+        if (mDeviceConnected) {
+            mGatt.disconnect();
+        }
+    }
+
+    public boolean registerForTemperature() {
+        if (mBusy) {
+            Log.d(TAG, "registerForTemperature: Gatt Busy");
+            serviceErrorHandler(InternalFailureReason.GATT_BUSY);
+            return false;
+        }
         if (mGatt != null) {
             BluetoothGattService weatherService = mGatt.getService(UUID.fromString(IPVS_WEATHER_UUID));
             if (weatherService != null) {
@@ -89,36 +107,43 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
                 BluetoothGattCharacteristic temperatureCharacteristic = weatherService.getCharacteristic(UUID.fromString(IPVS_WEATHER_TEMP_UUID));
                 if (temperatureCharacteristic == null) {
                     Log.e(TAG, "onServicesDiscovered: Complete Set of Characteristics not found");
-                    serviceErrorHandler(mGatt, InternalFailureReason.CHARACTERISTIC_NOT_FOUND);
+                    serviceErrorHandler(InternalFailureReason.CHARACTERISTIC_NOT_FOUND);
                 } else {
                     //apply for notification request on temperature changes
                     if (!mGatt.setCharacteristicNotification(temperatureCharacteristic, true)) {
                         Log.e(TAG, "onServicesDiscovered: Could not Register for Temperature or Humidity notification");
-                        serviceErrorHandler(mGatt, InternalFailureReason.CHARACTERISTIC_NOTI_FAILED);
+                        serviceErrorHandler(InternalFailureReason.CHARACTERISTIC_NOTI_FAILED);
                     } else {
                         BluetoothGattDescriptor tempDescriptor = temperatureCharacteristic.getDescriptor(UUID.fromString(DESCRIPTOR_UUID));
                         if (tempDescriptor != null) {
+                            mBusy = true;
                             //descriptors found
                             tempDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                            mGatt.writeDescriptor(tempDescriptor);
+                            return mGatt.writeDescriptor(tempDescriptor);
                         } else {
                             Log.e(TAG, "onServicesDiscovered: Did not find descriptor for Temperature");
-                            serviceErrorHandler(mGatt, InternalFailureReason.DESCRIPTOR_NOT_FOUND);
+                            serviceErrorHandler(InternalFailureReason.DESCRIPTOR_NOT_FOUND);
                         }
                     }
                 }
             } else {
                 Log.e(TAG, "onServicesDiscovered: Service not found");
-                serviceErrorHandler(mGatt, InternalFailureReason.SERVICE_NOT_FOUND);
+                serviceErrorHandler(InternalFailureReason.SERVICE_NOT_FOUND);
             }
         } else {
             Log.e(TAG, "registerForTemperature: Gatt Not Ready");
         }
+        return false;
     }
 
-    public boolean registerForHumidity(){
+    public boolean registerForHumidity() {
+        if (mBusy) {
+            Log.d(TAG, "registerForTemperature: Gatt Busy");
+            serviceErrorHandler(InternalFailureReason.GATT_BUSY);
+            return false;
+        }
         //write the humidity descriptor
-        if(mGatt != null) {
+        if (mGatt != null) {
             BluetoothGattService weatherService = mGatt.getService(UUID.fromString(IPVS_WEATHER_UUID));
             if (weatherService != null) {
                 BluetoothGattCharacteristic humidityCharacteristic = weatherService.getCharacteristic(UUID.fromString(IPVS_WEATHER_HUMID_UUID));
@@ -127,12 +152,8 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
                     BluetoothGattDescriptor humidDescriptor = humidityCharacteristic.getDescriptor(UUID.fromString(DESCRIPTOR_UUID));
                     if (humidDescriptor != null) {
                         Log.d(TAG, "onDescriptorWrite: Writing Humidity Descriptor");
+                        mBusy = true;
                         humidDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
                         return mGatt.writeDescriptor(humidDescriptor);
                     } else {
                         Log.e(TAG, "onDescriptorWrite: Could not find humidity descriptor");
@@ -149,8 +170,7 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         return false;
     }
 
-    public void updateValues() {
-        //TODO update the values in the device
+    public void updateTemperatureValue() {
 
     }
 
@@ -158,32 +178,25 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
     public void onDeviceFound(BluetoothDevice device) {
         Log.d(TAG, "onDeviceFound: Found Target Device");
         //connect to the target device
-        if (!mRunning) {
-            mRunning = true;
-            mDeviceConnected = false;
-            scanner.stopScan();
-            Log.d(TAG, "onDeviceFound: Connecting to target device");
-            //TODO have a time out while connecting to target device
-            mGatt = device.connectGatt(mContext, false, this);
-        } else {
-            Log.i(TAG, "onDeviceFound: Service Already running, cannot connect to device");
-        }
+        mDeviceConnected = false;
+        scanner.stopScan();
+        Log.d(TAG, "onDeviceFound: Connecting to target device");
+        //TODO have a time out while connecting to target device
+        mGatt = device.connectGatt(mContext, false, this);
     }
 
     @Override
     public void onScanCompleted() {
         Log.d(TAG, "onScanCompleted: Scan Completed");
-        if (!mRunning) {
-            Log.d(TAG, "onScanCompleted: Scan completed but the system is not running");
-            if (mCallback != null) {
-                mCallback.onWeatherServiceFailedStart(FailureReason.DEVICE_NOT_FOUND);
-            }
+        Log.d(TAG, "onScanCompleted: Scan completed but the system is not running");
+        if (mCallback != null) {
+            mCallback.onWeatherServiceFailedStart(FailureReason.DEVICE_NOT_FOUND);
         }
     }
 
     @Override
     public void onScanFailed(BLEScanner.ScannerFailureReason reason) {
-        serviceErrorHandler(null, InternalFailureReason.SCANNER_FAILED);
+        serviceErrorHandler(InternalFailureReason.SCANNER_FAILED);
     }
 
     //MARK: - Bluetooth Gatt Callback methods
@@ -229,28 +242,29 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         super.onServicesDiscovered(gatt, status);
         if (status == BluetoothGatt.GATT_SUCCESS) {
             Log.d(TAG, "onServicesDiscovered: Services have been discovered");
-            if (mCallback != null){
+            if (mCallback != null) {
                 mCallback.onWeatherServiceStarted();
             }
         } else {
             Log.e(TAG, "onServicesDiscovered: Failed to discover services");
-            serviceErrorHandler(gatt, InternalFailureReason.DISCOVER_SERVICES_FAILED);
+            serviceErrorHandler(InternalFailureReason.DISCOVER_SERVICES_FAILED);
         }
     }
 
     @Override
     public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
         super.onDescriptorWrite(gatt, descriptor, status);
+        mBusy = false;
         Log.d(TAG, "onDescriptorWrite: " + descriptor.getUuid().toString());
-        if(status == BluetoothGatt.GATT_SUCCESS){
-            if (descriptor.getCharacteristic().getUuid().toString().equals(IPVS_WEATHER_TEMP_UUID)){
+        if (status == BluetoothGatt.GATT_SUCCESS) {
+            if (descriptor.getCharacteristic().getUuid().toString().equals(IPVS_WEATHER_TEMP_UUID)) {
                 Log.d(TAG, "onDescriptorWrite: Temperature Descriptor successfully written");
-                if (mCallback != null){
+                if (mCallback != null) {
                     mCallback.onTemperatureServiceRegistered();
                 }
-            } else if (descriptor.getCharacteristic().getUuid().toString().equals(IPVS_WEATHER_HUMID_UUID)){
+            } else if (descriptor.getCharacteristic().getUuid().toString().equals(IPVS_WEATHER_HUMID_UUID)) {
                 Log.d(TAG, "onDescriptorWrite: Humidity Descriptor successfully written");
-                if (mCallback != null){
+                if (mCallback != null) {
                     mCallback.onHumidityServiceRegistered();
                 }
             } else {
@@ -282,19 +296,40 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         }
     }
 
-    /**
-     * Handles error related to Weather Service
-     *
-     * @param gatt the gatt connection, null if not connected
-     */
-    private void serviceErrorHandler(BluetoothGatt gatt, InternalFailureReason reason) {
+    @Override
+    public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+        super.onCharacteristicRead(gatt, characteristic, status);
+        mBusy = false;
+        if (status == BluetoothGatt.GATT_SUCCESS) {
+            if (characteristic.getUuid().toString().equals(IPVS_WEATHER_TEMP_UUID)) {
+                Log.d(TAG, "onCharacteristicRead: Temperature characteristic read");
+                float temp = characteristic.getFloatValue(BluetoothGattCharacteristic.FORMAT_FLOAT, 1);
+                Log.d(TAG, "onCharacteristicChanged: Temperature: " + temp);
+                if (mCallback != null) {
+                    mCallback.onTemperatureChanged(temp);
+                }
+            } else if (characteristic.getUuid().toString().equals(IPVS_WEATHER_HUMID_UUID)) {
+                int humid = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0);
+                Log.d(TAG, "onCharacteristicChanged: Humidity: " + humid);
+                if (mCallback != null) {
+                    mCallback.onHumidityChanged(humid);
+                }
+            }
+        } else {
+            Log.e(TAG, "onCharacteristicRead: Gatt could not read characteristic");
+            serviceErrorHandler(InternalFailureReason.CHARACTERISTIC_READ_FAILED);
+        }
+    }
+
+
+    private void serviceErrorHandler(InternalFailureReason reason) {
         if (mCallback != null) {
             mCallback.onWeatherServiceFailedStart(FailureReason.UNKNOWN);
         }
 
-        if (mDeviceConnected && gatt != null) {
+        if (mDeviceConnected && mGatt != null) {
             //disconnect from device
-            gatt.disconnect();
+            mGatt.disconnect();
         } else {
             mDeviceConnected = false;
         }
