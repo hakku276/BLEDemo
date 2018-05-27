@@ -1,56 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="@dimen/activity_horizontal_margin"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:padding="@dimen/activity_horizontal_margin">
 
-    <TextView
+    <android.support.constraint.Guideline
+        android:id="@+id/horizontal_guideline_20"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Waiting for status update"
-        android:id="@+id/text_state"/>
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.2" />
 
-    <TextView
+    <android.support.constraint.Guideline
+        android:id="@+id/horizontal_guideline_40"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Temperature"
-        android:layout_marginTop="10dp"
-        app:layout_constraintTop_toBottomOf="@+id/text_state"
-        android:id="@+id/tag_temperature"/>
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.4" />
 
-    <TextView
+    <android.support.constraint.Guideline
+        android:id="@+id/horizontal_guideline_60"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Nan"
-        android:layout_marginStart="10dp"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.60" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/vertical_guideline_10"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.1" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/vertical_guideline_40"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.4" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/vertical_guideline_50"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.5" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/vertical_guideline_60"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.6" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/vertical_guideline_90"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.9" />
+
+    <ImageView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="8dp"
+        android:src="@drawable/temperature"
+        app:layout_constraintBottom_toTopOf="@id/horizontal_guideline_40"
+        app:layout_constraintEnd_toStartOf="@id/vertical_guideline_40"
+        app:layout_constraintStart_toEndOf="@id/vertical_guideline_10"
+        app:layout_constraintTop_toBottomOf="@id/horizontal_guideline_20" />
+
+    <TextView
         android:id="@+id/text_temperature"
-        app:layout_constraintBaseline_toBaselineOf="@id/tag_temperature"
-        app:layout_constraintStart_toEndOf="@+id/tag_temperature"/>
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:text="@string/NaN"
+        app:layout_constraintEnd_toStartOf="@id/vertical_guideline_40"
+        app:layout_constraintStart_toEndOf="@id/vertical_guideline_10"
+        app:layout_constraintTop_toBottomOf="@id/horizontal_guideline_40" />
+
+    <ImageView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="8dp"
+        android:src="@drawable/humidity"
+        app:layout_constraintBottom_toTopOf="@id/horizontal_guideline_40"
+        app:layout_constraintEnd_toStartOf="@id/vertical_guideline_90"
+        app:layout_constraintStart_toEndOf="@id/vertical_guideline_60"
+        app:layout_constraintTop_toBottomOf="@id/horizontal_guideline_20" />
 
     <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Humidity"
-        android:layout_marginTop="10dp"
-        app:layout_constraintTop_toBottomOf="@+id/tag_temperature"
-        android:id="@+id/tag_humidity"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Nan"
-        android:layout_marginStart="10dp"
         android:id="@+id/text_humidity"
-        app:layout_constraintBaseline_toBaselineOf="@id/tag_humidity"
-        app:layout_constraintStart_toEndOf="@+id/tag_humidity"/>
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:text="@string/NaN"
+        app:layout_constraintEnd_toStartOf="@id/vertical_guideline_90"
+        app:layout_constraintStart_toEndOf="@id/vertical_guideline_60"
+        app:layout_constraintTop_toBottomOf="@id/horizontal_guideline_40" />
+
+    <TextView
+        android:id="@+id/text_status"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:gravity="center_horizontal"
+        android:text="@string/weather_fragment_status_waiting"
+        app:layout_constraintBottom_toTopOf="@id/horizontal_guideline_20"
+        app:layout_constraintEnd_toStartOf="@+id/vertical_guideline_90"
+        app:layout_constraintStart_toStartOf="@+id/vertical_guideline_10" />
 
     <Button
-        android:layout_width="wrap_content"
+        android:id="@+id/button_connect"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        app:layout_constraintTop_toBottomOf="@id/tag_humidity"
-        android:text="Refresh"/>
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:text="@string/fragment_weather_button_connect"
+        app:layout_constraintEnd_toStartOf="@+id/vertical_guideline_90"
+        app:layout_constraintStart_toStartOf="@+id/vertical_guideline_10"
+        app:layout_constraintTop_toBottomOf="@id/horizontal_guideline_60" />
 
 
 </android.support.constraint.ConstraintLayout>

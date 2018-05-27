@@ -1,29 +1,28 @@
 package com.team18.bledemo;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-
-import android.widget.TextView;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
 
 import com.team18.blemodule.FanController;
 import com.team18.blemodule.WeatherService;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int MY_PERMISSIONS_REQUEST = 1;
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -51,39 +50,53 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        mViewPager = (ViewPager) findViewById(R.id.container);
+        tabLayout = (TabLayout) findViewById(R.id.tabs);
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED) {
+            Log.i(TAG, "onCreate: Do not have permissions");
+            // Permission is not granted ask for permissions
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    MY_PERMISSIONS_REQUEST);
+
+            NoPermissionPagerAdapter adapter = new NoPermissionPagerAdapter(getSupportFragmentManager());
+
+            // Set up the ViewPager with the sections adapter.
+            mViewPager.setAdapter(adapter);
+            tabLayout.setupWithViewPager(mViewPager);
+        } else {
+            Log.i(TAG, "onCreate: Has permission, initiating fragments");
+            setupViews();
+        }
+    }
+
+    private void setupViews(){
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
 
         // Set up the ViewPager with the sections adapter.
-        mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
-
-        tabLayout=(TabLayout)findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
     }
 
-
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST:
+                if (grantResults.length == 2 &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                    Log.i(TAG, "onRequestPermissionsResult: Permission has been granted");
+                    setupViews();
+                    mSectionsPagerAdapter.notifyDataSetChanged();
+                }
+                break;
         }
-
-        return super.onOptionsItemSelected(item);
     }
 
     /**
@@ -106,9 +119,10 @@ public class MainActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            if(position == 0){
+            if (position == 0) {
                 return weatherFragment;
-            } if (position == 1){
+            }
+            if (position == 1) {
                 return fanFragment;
             }
             return null;
@@ -117,9 +131,37 @@ public class MainActivity extends AppCompatActivity {
         @Nullable
         @Override
         public CharSequence getPageTitle(int position) {
-            if(position == 0){
+            if (position == 0) {
                 return WeatherService.class.getSimpleName();
-            } else if(position == 1){
+            } else if (position == 1) {
+                return FanController.class.getSimpleName();
+            }
+            return "Fragment " + position;
+        }
+
+        @Override
+        public int getCount() {
+            return 2;
+        }
+    }
+
+    public class NoPermissionPagerAdapter extends FragmentPagerAdapter {
+
+        NoPermissionPagerAdapter(FragmentManager fm) {
+            super(fm);
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return new NoPermissionFragment();
+        }
+
+        @Nullable
+        @Override
+        public CharSequence getPageTitle(int position) {
+            if (position == 0) {
+                return WeatherService.class.getSimpleName();
+            } else if (position == 1) {
                 return FanController.class.getSimpleName();
             }
             return "Fragment " + position;

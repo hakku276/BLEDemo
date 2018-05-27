@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.team18.blemodule.WeatherService;
@@ -29,11 +30,13 @@ public class WeatherFragment extends Fragment implements WeatherService.WeatherS
 
     private WeatherService mWeatherService;
 
+    private Button btnConnect;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view =  inflater.inflate(R.layout.fragment_weather, container,false);
-        mTextStatus = (TextView) view.findViewById(R.id.text_state);
+        mTextStatus = (TextView) view.findViewById(R.id.text_status);
         mTextTemperature = (TextView) view.findViewById(R.id.text_temperature);
         mTextHumidity = (TextView) view.findViewById(R.id.text_humidity);
         BluetoothManager manager = (BluetoothManager) this.getActivity().getSystemService(BLUETOOTH_SERVICE);
@@ -51,7 +54,18 @@ public class WeatherFragment extends Fragment implements WeatherService.WeatherS
 
         mWeatherService = new WeatherService(getActivity(), adapter,this);
 
-        //mWeatherService.startService();
+        btnConnect = view.findViewById(R.id.button_connect);
+        btnConnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mWeatherService != null) {
+                    btnConnect.setEnabled(false);
+                    mTextStatus.setText("Connecting to Weather Service");
+                    mWeatherService.startService();
+                }
+            }
+        });
+
         return view;
     }
 
@@ -133,7 +147,8 @@ public class WeatherFragment extends Fragment implements WeatherService.WeatherS
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mTextStatus.setText("Status: " + reason);
+                btnConnect.setEnabled(true);
+                mTextStatus.setText("Connection Failed due to " + reason);
             }
         });
     }
