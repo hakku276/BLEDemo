@@ -1,4 +1,4 @@
-package com.team14.blemodule;
+package com.team18.blemodule;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -179,17 +179,17 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         Log.d(TAG, "onDeviceFound: Found Target Device");
         //connect to the target device
         mDeviceConnected = false;
-        scanner.stopScan();
         Log.d(TAG, "onDeviceFound: Connecting to target device");
         //TODO have a time out while connecting to target device
         mGatt = device.connectGatt(mContext, false, this);
+        scanner.stopScan();
     }
 
     @Override
     public void onScanCompleted() {
         Log.d(TAG, "onScanCompleted: Scan Completed");
         Log.d(TAG, "onScanCompleted: Scan completed but the system is not running");
-        if (mCallback != null) {
+        if (mGatt == null && mCallback != null) {
             mCallback.onWeatherServiceFailedStart(FailureReason.DEVICE_NOT_FOUND);
         }
     }

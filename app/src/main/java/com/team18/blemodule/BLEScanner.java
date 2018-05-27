@@ -1,4 +1,4 @@
-package com.team14.blemodule;
+package com.team18.blemodule;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -7,13 +7,10 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.os.Handler;
-import android.os.ParcelUuid;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * The BLE Scanner which scans for the respective BLE Devices
@@ -125,7 +122,7 @@ public class BLEScanner extends ScanCallback {
 
             //ScanSetting
             ScanSettings.Builder scanSettingBuilder = new ScanSettings.Builder();
-            scanSettingBuilder.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
+            scanSettingBuilder.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
 
             mHandler.postDelayed(new Runnable() {
                 @Override
@@ -168,6 +165,7 @@ public class BLEScanner extends ScanCallback {
     @Override
     public void onBatchScanResults(List<ScanResult> results) {
         //nothing to do here
+        Log.d(TAG, "onBatchScanResults: Devices found: " + results.size());
     }
 
     @Override

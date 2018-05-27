@@ -1,4 +1,4 @@
-package com.team14.blemodule;
+package com.team18.blemodule;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -153,7 +153,9 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
 
     @Override
     public void onScanCompleted() {
-
+        if(mGatt == null && mCallback != null){
+            mCallback.onFanControllerServiceFailedStart(FailureReason.OTHER);
+        }
     }
 
 
