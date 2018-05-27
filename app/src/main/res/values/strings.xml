@@ -9,4 +9,8 @@
     <string name="weather_fragment_status_waiting">Waiting Status Update</string>
     <string name="fragment_weather_button_connect">Connect</string>
     <string name="fragment_no_permission_text_no_perm">No Permission</string>
+    <string name="fragment_fan_waiting_status">Waiting Status Update</string>
+    <string name="fragment_fan_text_raw_speed">Raw Speed Value:</string>
+    <string name="fragment_fan_button_connect">Connect</string>
+    <string name="fragment_fan_button_update">Update</string>
 </resources>

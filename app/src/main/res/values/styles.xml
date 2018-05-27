@@ -19,4 +19,6 @@
 
     <style name="TitleText" parent="TextAppearance.AppCompat.Large"/>
 
+    <style name="Number" parent="TextAppearance.AppCompat.Medium"/>
+
 </resources>
