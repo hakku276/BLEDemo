@@ -15,30 +15,15 @@ import java.util.Arrays;
 import java.util.UUID;
 
 /**
- * Created by aanal on 5/29/17.
+ * Created by aanal on 5/24/18.
  */
 
-public class FanController extends BluetoothGattCallback implements BLEScanner.BLEScannerCallback{
-
-    public interface FanControllerCallback {
-        void onValueWritten();
-
-        void onFanControllerServiceStarted();
-
-        void onFanControllerServiceFailedStart(FailureReason reason);
-
-        void onFanSpeedRead(int speed);
-    }
-
-    public enum FailureReason{
-        OTHER;
-    }
+public class FanController extends BluetoothGattCallback implements BLEScanner.BLEScannerCallback {
 
     private static final String TARGET_DEVICE = "IPVS-LIGHT";
     private static final String IPVS_FAN_SERVICE_UUID = "00000001-0000-0000-fdfd-fdfdfdfdfdfd";
     private static final String IPVS_FAN_CHARACTERISTIC_UUID = "10000001-0000-0000-fdfd-fdfdfdfdfdfd";
     private static final String TAG = FanController.class.getName();
-
     private Context mContext;
     private BluetoothAdapter mAdapter;
     private FanControllerCallback mCallback;
@@ -47,8 +32,7 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
     private boolean mDeviceConnected;
     private boolean mBusy;
     private BluetoothGatt mGatt;
-
-    public FanController(Context context, BluetoothAdapter adapter, FanControllerCallback callback){
+    public FanController(Context context, BluetoothAdapter adapter, FanControllerCallback callback) {
         this.mContext = context;
         this.mAdapter = adapter;
         this.mCallback = callback;
@@ -58,23 +42,23 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
         mBusy = false;
     }
 
-    public void startService(){
-        if(!mRunning){
+    public void startService() {
+        if (!mRunning) {
             bleScanner.startScan(TARGET_DEVICE);
-        } else{
+        } else {
             Log.d(TAG, "startService: System already running");
         }
     }
 
-    public void stopService(){
-        if(mRunning && mDeviceConnected){
+    public void stopService() {
+        if (mRunning && mDeviceConnected) {
             mGatt.disconnect();
         }
         mRunning = false;
         mDeviceConnected = false;
     }
 
-    public boolean setFanSpeed(int speed){
+    public boolean setFanSpeed(int speed) {
         if (mDeviceConnected && !mBusy) {
             if (speed >= 0 && speed < 65536) {
                 BluetoothGattService srvc = mGatt.getService(UUID.fromString(IPVS_FAN_SERVICE_UUID));
@@ -85,7 +69,7 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
                         ByteBuffer b = ByteBuffer.allocate(4);
                         b.order(ByteOrder.LITTLE_ENDIAN); // optional, the initial order of a byte buffer is always BIG_ENDIAN.
                         b.putInt(speed);
-                        byte[] value = Arrays.copyOfRange(b.array(),0,2);
+                        byte[] value = Arrays.copyOfRange(b.array(), 0, 2);
                         chr.setValue(value);
 
                         StringBuilder builder = new StringBuilder();
@@ -114,7 +98,7 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
         return false;
     }
 
-    public void readFanSpeed(){
+    public void readFanSpeed() {
         BluetoothGattService srvc = mGatt.getService(UUID.fromString(IPVS_FAN_SERVICE_UUID));
         if (srvc != null) {
             BluetoothGattCharacteristic chr = srvc.getCharacteristic(UUID.fromString(IPVS_FAN_CHARACTERISTIC_UUID));
@@ -153,11 +137,10 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
 
     @Override
     public void onScanCompleted() {
-        if(mGatt == null && mCallback != null){
+        if (mGatt == null && mCallback != null) {
             mCallback.onFanControllerServiceFailedStart(FailureReason.OTHER);
         }
     }
-
 
     //MARK: - Bluetooth Gatt Callback
     @Override
@@ -200,9 +183,9 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
     @Override
     public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
         super.onCharacteristicRead(gatt, characteristic, status);
-        if (status == BluetoothGatt.GATT_SUCCESS){
+        if (status == BluetoothGatt.GATT_SUCCESS) {
             Log.d(TAG, "onCharacteristicRead: Characteristic read");
-            if (mCallback != null){
+            if (mCallback != null) {
                 mCallback.onFanSpeedRead(characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0));
             }
         } else {
@@ -215,7 +198,7 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
         super.onServicesDiscovered(gatt, status);
         if (status == BluetoothGatt.GATT_SUCCESS) {
             Log.d(TAG, "onServicesDiscovered: Services have been discovered");
-            if (mCallback != null){
+            if (mCallback != null) {
                 mCallback.onFanControllerServiceStarted();
             }
         } else {
@@ -228,16 +211,30 @@ public class FanController extends BluetoothGattCallback implements BLEScanner.B
     public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
         super.onCharacteristicWrite(gatt, characteristic, status);
         Log.d(TAG, "onCharacteristicWrite: Characteristic written callback");
-        if(status == BluetoothGatt.GATT_SUCCESS){
+        if (status == BluetoothGatt.GATT_SUCCESS) {
             //the value was written successfully
             Log.d(TAG, "onCharacteristicWrite: Success");
             mBusy = false;
-            if (mCallback != null){
+            if (mCallback != null) {
                 mCallback.onValueWritten();
             }
         } else {
             Log.d(TAG, "onCharacteristicWrite: failed");
             //TODO error handling
         }
+    }
+
+    public enum FailureReason {
+        OTHER;
+    }
+
+    public interface FanControllerCallback {
+        void onValueWritten();
+
+        void onFanControllerServiceStarted();
+
+        void onFanControllerServiceFailedStart(FailureReason reason);
+
+        void onFanSpeedRead(int speed);
     }
 }

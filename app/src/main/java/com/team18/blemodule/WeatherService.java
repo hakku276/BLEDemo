@@ -14,7 +14,7 @@ import java.util.UUID;
 
 /**
  * The weather service that scans for IPVSWeather and connects, subscribes to the device listens to changes in the values
- * Created by aanal on 5/24/17.
+ * Created by aanal on 5/24/18.
  */
 
 public class WeatherService extends BluetoothGattCallback implements BLEScanner.BLEScannerCallback {
@@ -25,39 +25,6 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
     private static final String IPVS_WEATHER_TEMP_UUID = "00002a1c-0000-1000-8000-00805f9b34fb";
     private static final String DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb";
     private static final String IPVS_WEATHER_HUMID_UUID = "00002a6f-0000-1000-8000-00805f9b34fb";
-
-    public interface WeatherServiceCallback {
-        void onTemperatureChanged(float value);
-
-        void onHumidityChanged(int value);
-
-        void onWeatherServiceStarted();
-
-        void onTemperatureServiceRegistered();
-
-        void onHumidityServiceRegistered();
-
-        void onWeatherServiceFailedStart(FailureReason reason);
-    }
-
-    public enum FailureReason {
-        DEVICE_NOT_FOUND,
-        CONNECTION_FAILED,
-        UNKNOWN
-    }
-
-    private enum InternalFailureReason {
-        SCANNER_FAILED,
-        CHARACTERISTIC_NOT_FOUND,
-        CHARACTERISTIC_NOTI_FAILED,
-        CHARACTERISTIC_READ_FAILED,
-        DESCRIPTOR_WRITE_FAILED,
-        DESCRIPTOR_NOT_FOUND,
-        SERVICE_NOT_FOUND,
-        DISCOVER_SERVICES_FAILED,
-        GATT_BUSY
-    }
-
     private BLEScanner scanner;
     private WeatherServiceCallback mCallback;
     private boolean mRunning;
@@ -65,7 +32,6 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
     private boolean mBusy;
     private Context mContext;
     private BluetoothGatt mGatt;
-
     public WeatherService(Context context, BluetoothAdapter adapter, WeatherServiceCallback callback) {
         this.scanner = new BLEScanner(adapter, this);
         this.mCallback = callback;
@@ -321,7 +287,6 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         }
     }
 
-
     private void serviceErrorHandler(InternalFailureReason reason) {
         if (mCallback != null) {
             mCallback.onWeatherServiceFailedStart(FailureReason.UNKNOWN);
@@ -336,5 +301,38 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
 
         //the system is not running
         mRunning = false;
+    }
+
+    public enum FailureReason {
+        DEVICE_NOT_FOUND,
+        CONNECTION_FAILED,
+        UNKNOWN
+    }
+
+    private enum InternalFailureReason {
+        SCANNER_FAILED,
+        CHARACTERISTIC_NOT_FOUND,
+        CHARACTERISTIC_NOTI_FAILED,
+        CHARACTERISTIC_READ_FAILED,
+        DESCRIPTOR_WRITE_FAILED,
+        DESCRIPTOR_NOT_FOUND,
+        SERVICE_NOT_FOUND,
+        DISCOVER_SERVICES_FAILED,
+        GATT_BUSY
+    }
+
+
+    public interface WeatherServiceCallback {
+        void onTemperatureChanged(float value);
+
+        void onHumidityChanged(int value);
+
+        void onWeatherServiceStarted();
+
+        void onTemperatureServiceRegistered();
+
+        void onHumidityServiceRegistered();
+
+        void onWeatherServiceFailedStart(FailureReason reason);
     }
 }

@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * The BLE Scanner which scans for the respective BLE Devices
- * Created by aanal on 5/24/17.
+ * Created by aanal on 5/24/18.
  */
 
 public class BLEScanner extends ScanCallback {
