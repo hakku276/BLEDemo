@@ -101,9 +101,17 @@ public class FanFragment extends Fragment implements FanController.FanController
             @Override
             public void onClick(View v) {
                 Log.i(TAG, "onClick: Starting connect");
-                mTextStatus.setText("Connecting to Device");
-                mFanController.startService();
-                btnConnect.setEnabled(false);
+                if(!serviceStarted) {
+                    mTextStatus.setText("Connecting to Device");
+                    mFanController.startService();
+                    btnConnect.setEnabled(false);
+                } else {
+                    serviceStarted = false;
+                    mTextStatus.setText("Disconnected from Device");
+                    btnConnect.setEnabled(true);
+                    btnConnect.setText("Connect");
+                    mFanController.stopService();
+                }
             }
         });
 
@@ -143,11 +151,13 @@ public class FanFragment extends Fragment implements FanController.FanController
     @Override
     public void onFanControllerServiceStarted() {
         Log.i(TAG, "onFanControllerServiceStarted: Fan service started");
-        serviceStarted = true;
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                serviceStarted = true;
                 mTextStatus.setText("Connected to Service");
+                btnConnect.setText("Disconnect");
+                btnConnect.setEnabled(true);
             }
         });
     }
@@ -155,7 +165,9 @@ public class FanFragment extends Fragment implements FanController.FanController
     @Override
     public void onFanControllerServiceFailedStart(FanController.FailureReason reason) {
         Log.i(TAG, "onFanControllerServiceFailedStart: Failed");
+        serviceStarted = false;
         btnConnect.setEnabled(true);
+        btnConnect.setText("Connect");
         mTextStatus.setText("Failed to connect");
     }
 

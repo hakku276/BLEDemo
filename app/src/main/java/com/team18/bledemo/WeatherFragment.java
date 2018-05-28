@@ -32,6 +32,8 @@ public class WeatherFragment extends Fragment implements WeatherService.WeatherS
 
     private Button btnConnect;
 
+    private boolean serviceConnected = false;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -59,9 +61,17 @@ public class WeatherFragment extends Fragment implements WeatherService.WeatherS
             @Override
             public void onClick(View v) {
                 if(mWeatherService != null) {
-                    btnConnect.setEnabled(false);
-                    mTextStatus.setText("Connecting to Weather Service");
-                    mWeatherService.startService();
+                    if(!serviceConnected) {
+                        btnConnect.setEnabled(false);
+                        mTextStatus.setText("Connecting to Weather Service");
+                        mWeatherService.startService();
+                    } else {
+                        mTextStatus.setText("Disconnected from Weather Service");
+                        serviceConnected = false;
+                        btnConnect.setEnabled(true);
+                        btnConnect.setText("Connect");
+                        mWeatherService.stopService();
+                    }
                 }
             }
         });
@@ -137,6 +147,9 @@ public class WeatherFragment extends Fragment implements WeatherService.WeatherS
             @Override
             public void run() {
                 mTextStatus.setText("Status: Ready");
+                serviceConnected = true;
+                btnConnect.setEnabled(true);
+                btnConnect.setText("Disconnect");
             }
         });
     }
@@ -148,6 +161,7 @@ public class WeatherFragment extends Fragment implements WeatherService.WeatherS
             @Override
             public void run() {
                 btnConnect.setEnabled(true);
+                btnConnect.setText("Connect");
                 mTextStatus.setText("Connection Failed due to " + reason);
             }
         });
